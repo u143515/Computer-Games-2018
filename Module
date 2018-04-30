@@ -5,6 +5,8 @@
 // a call to the NWN DetermineCombatRound.
 void T2_DetermineCombatRound( object oIntruder = OBJECT_INVALID, int nAI_Difficulty = 10 )
 {
+                /// TrySpell melf's acid arrow for Wizards, dan TrySpell sterkste spell available
+
 
 // You can leave this function as is (50.000 lines, quite intelligent) , or say "if this happens, then this, otherwise use the function below
     DetermineCombatRound( oIntruder, nAI_Difficulty );
@@ -27,6 +29,9 @@ void T2_HeartBeat()
 // end of added function
 
     if (GetIsInCombat())        // "am I fighting?"
+
+            //// IF I AM NOT FIGHTING, CHECK MY HEALTH, USE POTION OR HEALING SPELL IF AVAILABLE
+
         return;
 
     string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );   // Get Target
@@ -75,7 +80,7 @@ void T2_HeartBeat()
         fToTarget = GetDistanceToObject( oTarget );
     }
 
-    if (fToTarget > 0.5)
+    if (fToTarget > 0.5)        //// MAKE DISTANCE BIGGER???
     {
         SpeakString( "I move to " + sTarget, TALKVOLUME_SHOUT );
         ActionMoveToLocation( GetLocation( oTarget ), TRUE );
@@ -192,4 +197,3 @@ void T2_Initialize( string sColor )
 {
     SetTeamName( sColor, "T2-" + GetStringLowerCase( sColor ) );
 }
-
