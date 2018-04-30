@@ -5,13 +5,19 @@
 // a call to the NWN DetermineCombatRound.
 void T2_DetermineCombatRound( object oIntruder = OBJECT_INVALID, int nAI_Difficulty = 10 )
 {
+// You can leave this function as is (50.000 lines, quite intelligent) , or say "if this happens, then this, otherwise use the function below
     DetermineCombatRound( oIntruder, nAI_Difficulty );
 }
 
 // Called every heartbeat (i.e., every six seconds).
 void T2_HeartBeat()
 {
-    if (GetIsInCombat())
+// this function was added
+    string sTag = "I am " + GetTag( OBJECT_SELF );
+    SpeakString( sTag, TALKVOLUME_SHOUT);
+// end of added function
+
+    if (GetIsInCombat())        // "am I fighting?"
         return;
 
     string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );
@@ -19,7 +25,7 @@ void T2_HeartBeat()
         return;
 
     object oTarget = GetObjectByTag( sTarget );
-    if (!GetIsObjectValid( oTarget ))
+    if (!GetIsObjectValid( oTarget ))               // If object is not valid, return
         return;
 
     // If there is a member of my own team close to the target and closer than me,
@@ -50,7 +56,7 @@ void T2_HeartBeat()
         oCreature = GetNearestObjectToLocation( OBJECT_TYPE_CREATURE, GetLocation( oTarget ), i );
     }
 
-    if (bNewTarget)
+    if (bNewTarget && !IsMaster())       // added !IsMaster, to make Master hunt the wizard
     {
         sTarget = GetRandomTarget();
         SetLocalString( OBJECT_SELF, "TARGET", sTarget );
@@ -61,17 +67,29 @@ void T2_HeartBeat()
     }
 
     if (fToTarget > 0.5)
+    {
+        SpeakString( "I move to " + sTarget, TALKVOLUME_SHOUT );
         ActionMoveToLocation( GetLocation( oTarget ), TRUE );
+    }
 
     return;
 }
 
 // Called when the NPC is spawned.
+// ACTIONS GET THROWN OUT, because units are paralyzed at spawn
 void T2_Spawn()
 {
     string sTarget = GetRandomTarget();
-    SetLocalString( OBJECT_SELF, "TARGET", sTarget );
-    ActionMoveToLocation( GetLocation( GetObjectByTag( sTarget ) ), TRUE );
+    if (IsMaster())
+    {
+        sTarget = "NPC_" + OpponentColor()+ "_1";             // could be that the wizard is also dead at this point
+        SpeakString("I will get that wizard! ->" + sTarget, TALKVOLUME_SHOUT);
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );
+        return;
+    }
+    // if I am wizard, if I am ...
+    SetLocalString( OBJECT_SELF, "TARGET", sTarget );    // the string (target) is stored IN the object
+    ActionMoveToLocation( GetLocation( GetObjectByTag( sTarget ) ), TRUE );  // TRUE to say that the character should run
 }
 
 // This function is called when certain events take place, after the standard
@@ -125,5 +143,5 @@ void T2_UserDefined( int Event )
 // Called when the fight starts, just before the initial spawning.
 void T2_Initialize( string sColor )
 {
-    SetTeamName( sColor, "Default-" + GetStringLowerCase( sColor ) );
+    SetTeamName( sColor, "T2-" + GetStringLowerCase( sColor ) );
 }
