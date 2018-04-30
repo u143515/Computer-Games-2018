@@ -89,13 +89,13 @@ void T2_HeartBeat()
 void T2_Spawn()
 {
     string sTarget = GetRandomTarget();
-    if (IsClericLeft())
+    if (IsWizardLeft())
     {
         sTarget = WpClosestAltarLeft();
         SetLocalString( OBJECT_SELF, "TARGET", sTarget );      // SET
         return;
     }
-    else if (IsClericRight())
+    else if (IsWizardRight())
     {
         sTarget = WpClosestAltarRight();
         SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
@@ -107,7 +107,7 @@ void T2_Spawn()
       SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
       return;
     }
-    else if (IsWizardRight())
+    else if (IsClericRight())
     {
         sTarget = WpFurthestAltarRight();
         SetLocalString( OBJECT_SELF, "TARGET", sTarget);
@@ -119,7 +119,7 @@ void T2_Spawn()
       SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
       return;
      }
-    else if (IsWizardLeft())
+    else if (IsClericLeft())
     {
       sTarget = WpFurthestAltarLeft();
       SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
