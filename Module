@@ -5,9 +5,18 @@
 // a call to the NWN DetermineCombatRound.
 void T2_DetermineCombatRound( object oIntruder = OBJECT_INVALID, int nAI_Difficulty = 10 )
 {
+
 // You can leave this function as is (50.000 lines, quite intelligent) , or say "if this happens, then this, otherwise use the function below
     DetermineCombatRound( oIntruder, nAI_Difficulty );
 }
+
+
+
+void T2_Target()
+    {
+    string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );
+    }
+
 
 // Called every heartbeat (i.e., every six seconds).
 void T2_HeartBeat()
@@ -20,7 +29,7 @@ void T2_HeartBeat()
     if (GetIsInCombat())        // "am I fighting?"
         return;
 
-    string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );
+    string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );   // Get Target
     if (sTarget == "")
         return;
 
@@ -80,16 +89,31 @@ void T2_HeartBeat()
 void T2_Spawn()
 {
     string sTarget = GetRandomTarget();
-    if (IsMaster())
+    if (IsClericLeft())
     {
-        sTarget = "NPC_" + OpponentColor()+ "_1";             // could be that the wizard is also dead at this point
-        SpeakString("I will get that wizard! ->" + sTarget, TALKVOLUME_SHOUT);
-        SetLocalString( OBJECT_SELF, "TARGET", sTarget );
+        sTarget = WpClosestAltarLeft();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );      // SET
         return;
     }
-    // if I am wizard, if I am ...
-    SetLocalString( OBJECT_SELF, "TARGET", sTarget );    // the string (target) is stored IN the object
-    ActionMoveToLocation( GetLocation( GetObjectByTag( sTarget ) ), TRUE );  // TRUE to say that the character should run
+    else if (IsClericRight())
+    {
+        sTarget = WpClosestAltarRight();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
+        return;
+    }
+    else
+    {
+         sTarget = WpDoubler();
+         SetLocalString( OBJECT_SELF, "TARGET", sTarget );   // SET
+         return;
+    }
+ //   if (IsMaster())
+ //    {
+ //        sTarget = "NPC_" + OpponentColor()+ "_1";             // could be that the wizard is also dead at this point
+ //        SpeakString("I will get that wizard! ->" + sTarget, TALKVOLUME_SHOUT);
+ //        SetLocalString( OBJECT_SELF, "TARGET", sTarget );
+ //        return;
+ //    }
 }
 
 // This function is called when certain events take place, after the standard
@@ -108,6 +132,7 @@ void T2_UserDefined( int Event )
 
         // At the end of one round of combat.
         case EVENT_END_COMBAT_ROUND:
+            T2_Target();
             break;
 
         // Every heartbeat (i.e., every six seconds).
@@ -145,3 +170,4 @@ void T2_Initialize( string sColor )
 {
     SetTeamName( sColor, "T2-" + GetStringLowerCase( sColor ) );
 }
+
