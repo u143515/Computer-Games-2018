@@ -1,45 +1,81 @@
 #include "NW_I0_GENERIC"
 #include "our_constants"
 
+// Heal if damaged
+void T2_HealC()
+{
+    if (GetHealth() < 4 && !GetIsInCombat())
+    {
+        TalentHealingSelf(); // attempt to heal self with potions or spells
+        SpeakString("I will heal, G", TALKVOLUME_SHOUT);
+    }
+}
+
+
+// Select closest free altar, nearest enemy otherwise
+void T2_ClosestFreeAltarC()
+{
+
+float MinDist = 0.0;
+string ClaimTarget = "";         // HAAKJES CHECKEN
+
+if ((ClaimerOf(WpFurthestAltarLeft())==""))
+    {
+    MinDist = GetDistanceToObject(GetObjectByTag(WpFurthestAltarLeft()));
+    ClaimTarget = WpFurthestAltarLeft();
+    }                                    // HAAKJES CHECKEN
+
+if ((ClaimerOf(WpFurthestAltarRight())=="")&& (GetDistanceToObject(GetObjectByTag(WpFurthestAltarRight()) <= MinDist)))
+    {
+    MinDist = GetDistanceToObject(GetObjectByTag(WpFurthestAltarRight()));
+    ClaimTarget = WpFurthestAltarRight();
+    }                                               // HAAKJES CHECKEN
+
+if ((ClaimerOf(WpClosestAltarLeft())=="") && (GetDistanceToObject(GetObjectByTag(WpClosestAltarLeft())) <= MinDist))
+    {
+    MinDist = GetDistanceToObject(GetObjectByTag(WpClosestAltarLeft()));
+    ClaimTarget = WpClosestAltarLeft();
+    }                                               // HAAKJES CHECKEN
+
+if ((ClaimerOf(WpClosestAltarRight())=="") && (GetDistanceToObject(GetObjectByTag(WpClosestAltarRight()) <= MinDist)))
+    {
+    MinDist = GetDistanceToObject(GetObjectByTag(WpClosestAltarRight());
+    ClaimTarget = WpClosestAltarRight();
+    }                                          // HAAKJES CHECKEN
+
+if ((ClaimerOf(WpDoubler())=="") && (GetDistanceToObject(GetObjectByTag(WpDoubler() <= MinDist))
+    {
+    MinDist = GetDistanceToObject(GetObjectByTag(WpClosestAltarRight());
+    ClaimTarget = WpClosestAltarRight();
+    }                                            // HAAKJES CHECKEN
+
+if (ClaimTarget != "")
+    return ClaimTarget;    // string
+else
+    return "";
+}
+
+
 // Called every time that the AI needs to take a combat decision. The default is
 // a call to the NWN DetermineCombatRound.
 void T2_DetermineCombatRound( object oIntruder = OBJECT_INVALID, int nAI_Difficulty = 10 )
 {
-                /// TrySpell melf's acid arrow for Wizards, dan TrySpell sterkste spell available
-
-
-// You can leave this function as is (50.000 lines, quite intelligent) , or say "if this happens, then this, otherwise use the function below
     DetermineCombatRound( oIntruder, nAI_Difficulty );
 }
-
-
-
-void T2_Target()  // If this does not make the character move back to its target faster, then this function can be deleted
-    {
-    string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );
-    }
-
 
 // Called every heartbeat (i.e., every six seconds).
 void T2_HeartBeat()
 {
-// this function was added
-    string sTag = "I am " + GetTag( OBJECT_SELF );
-    SpeakString( sTag, TALKVOLUME_SHOUT);
-// end of added function
-
-    if (GetIsInCombat())        // "am I fighting?"
-
-            //// IF I AM NOT FIGHTING, CHECK MY HEALTH, USE POTION OR HEALING SPELL IF AVAILABLE
-
+    if (GetIsInCombat())
         return;
 
-    string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );   // Get Target
+    string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );
     if (sTarget == "")
         return;
 
     object oTarget = GetObjectByTag( sTarget );
-    if (!GetIsObjectValid( oTarget ))               // If object is not valid, return
+    // doet niks
+    if (!GetIsObjectValid( oTarget ))
         return;
 
     // If there is a member of my own team close to the target and closer than me,
@@ -59,7 +95,7 @@ void T2_HeartBeat()
             break;
         if (!SameTeam( oCreature ))
             break;
-        if (GetIsInCombat( oCreature ))
+        if (GetIsInCombat( oCreature ))         // Code does not continue if in combat
             break;
         if (GetLocalString( oCreature, "TARGET" ) == sTarget)
         {
@@ -70,71 +106,73 @@ void T2_HeartBeat()
         oCreature = GetNearestObjectToLocation( OBJECT_TYPE_CREATURE, GetLocation( oTarget ), i );
     }
 
-    if (bNewTarget && !IsMaster())       // added !IsMaster, to make Master hunt the wizard
+    if (bNewTarget )
     {
-        sTarget = GetRandomTarget();
-        SetLocalString( OBJECT_SELF, "TARGET", sTarget );
-        oTarget = GetObjectByTag( sTarget );
+        if (!T2_ClosestFreeAltarC()=="")
+            {
+            sTarget = T2_ClosestFreeAltarC();
+            SetLocalString( OBJECT_SELF, "TARGET", sTarget );
+            oTarget = GetObjectByTag(sTarget);
+            }
+        else
+            oTarget = GetNearestEnemy();
         if (!GetIsObjectValid( oTarget ))
             return;
         fToTarget = GetDistanceToObject( oTarget );
     }
 
-    if (fToTarget > 0.5)        //// MAKE DISTANCE BIGGER???
-    {
-        SpeakString( "I move to " + sTarget, TALKVOLUME_SHOUT );
+    if (fToTarget > 0.5)
         ActionMoveToLocation( GetLocation( oTarget ), TRUE );
-    }
+
+    SpeakString("I will move  to" + sTarget, TALKVOLUME_SHOUT);
 
     return;
 }
 
 // Called when the NPC is spawned.
-// ACTIONS GET THROWN OUT, because units are paralyzed at spawn
 void T2_Spawn()
 {
-    string sTarget = GetRandomTarget();
     if (IsWizardLeft())
     {
-        sTarget = WpClosestAltarLeft();
+        string sTarget = WpClosestAltarLeft();
         SetLocalString( OBJECT_SELF, "TARGET", sTarget );      // SET
         return;
     }
     else if (IsWizardRight())
     {
-        sTarget = WpClosestAltarRight();
+        string sTarget = WpClosestAltarRight();
         SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
         return;
     }
     else if (IsFighterRight())
     {
-      sTarget = WpFurthestAltarRight();
-      SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
-      return;
+        string sTarget = WpFurthestAltarRight();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
+        return;
     }
     else if (IsClericRight())
     {
-        sTarget = WpFurthestAltarRight();
+        string sTarget = WpFurthestAltarRight();
         SetLocalString( OBJECT_SELF, "TARGET", sTarget);
         return ;
     }
     else if (IsFighterLeft())
     {
-      sTarget = WpFurthestAltarLeft();
-      SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
-      return;
+        string sTarget = WpFurthestAltarLeft();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
+        return;
      }
     else if (IsClericLeft())
     {
-      sTarget = WpFurthestAltarLeft();
-      SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
-      return;
+        string sTarget = WpFurthestAltarLeft();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
+        return;
     }
 
    else if (IsMaster())
    {
-        sTarget = "NPC_" + OpponentColor()+ "_1";             // could be that the wizard is also dead at this point
-        SpeakString("I will get that wizard! ->" + sTarget, TALKVOLUME_SHOUT);
+        string sTarget = "NPC_" + OpponentColor()+ "_4";             // could be that the wizard is also dead at this point
+        SpeakString("I will get that master! ->" + sTarget, TALKVOLUME_SHOUT);
         SetLocalString( OBJECT_SELF, "TARGET", sTarget );
         return;
    }
@@ -148,9 +186,6 @@ void T2_UserDefined( int Event )
     {
         // The NPC has just been attacked.
         case EVENT_ATTACKED:
-          //  int allies = CheckFriendlyFireOnTarget( OBJECT_SELF, 5.0)
-          //  if (allies > 0)
-            // als ze niet in gevecht zijn, get tags of allies in range and let them help
             break;
 
         // The NPC was damaged.
@@ -159,12 +194,12 @@ void T2_UserDefined( int Event )
 
         // At the end of one round of combat.
         case EVENT_END_COMBAT_ROUND:
-            T2_Target();
             break;
 
         // Every heartbeat (i.e., every six seconds).
         case EVENT_HEARTBEAT:
             T2_HeartBeat();
+            T2_HealC();
             break;
 
         // Whenever the NPC perceives a new creature.
