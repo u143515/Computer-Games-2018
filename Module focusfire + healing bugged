@@ -1,0 +1,219 @@
+#include "NW_I0_GENERIC"
+#include "our_constants"
+
+// Called every time that the AI needs to take a combat decision. The default is
+// a call to the NWN DetermineCombatRound.
+void T2_DetermineCombatRound( object oIntruder = OBJECT_INVALID, int nAI_Difficulty = 10 )
+{
+          //// ATTACK WEAKEST ENEMY (wizard > cleric > fighter > master)
+
+    // Get nearest PC
+    object oPC = GetNearestCreature(CREATURE_TYPE_PLAYER_CHAR, PLAYER_CHAR_IS_PC);
+
+    // Get weakest
+//    object oWeakest = GetFactionMostDamagedMember(oFactionMember, TRUE);
+
+    // Attack them
+    if(GetIsObjectValid(oPC))       // oWeakest instead of oPC
+    {
+        // ClearAllActions();   This seems to make the NPCs not return to a target afterwards
+        ActionAttack(oPC);         // oWeakest instead of oPC
+    }
+
+
+            /// TrySpell melf's acid arrow for Wizards, dan TrySpell sterkste spell available
+
+// You can leave this function as is (50.000 lines, quite intelligent) , or say "if this happens, then this, otherwise use the function below
+    DetermineCombatRound( oIntruder, nAI_Difficulty );
+}
+
+
+
+void T2_Target()  // If this does not make the character move back to its target faster, then this function can be deleted
+    {
+    string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );
+    }
+
+
+// Called every heartbeat (i.e., every six seconds).
+void T2_HeartBeat()
+{
+
+    if (GetIsInCombat())        // "am I fighting?"
+    {
+        T2_DetermineCombatRound();
+        return;
+    }
+
+    else if (GetIsInCombat()==FALSE)
+        {
+        if (GetHealth() < 5)
+            {
+            TalentHealingSelf(); // attempt to heal self with potions or spells
+            }
+        }
+
+    string sTarget = GetLocalString( OBJECT_SELF, "TARGET" );   // Get Target
+    if (sTarget == "")
+        return;
+
+    object oTarget = GetObjectByTag( sTarget );
+    if (!GetIsObjectValid( oTarget ))               // If object is not valid, return
+        return;
+
+    // If there is a member of my own team close to the target and closer than me,
+    // and no enemy is closer and this other member is not in combat and
+    // has the same target, then choose a new target.
+    float fToTarget = GetDistanceToObject( oTarget );
+    int i = 1;
+    int bNewTarget = FALSE;
+    object oCreature = GetNearestObjectToLocation( OBJECT_TYPE_CREATURE, GetLocation( oTarget ), i );
+    while (GetIsObjectValid( oCreature ))
+    {
+        if (GetLocation( oCreature ) == GetLocation( OBJECT_SELF ))
+            break;
+        if (GetDistanceBetween( oCreature, oTarget ) > fToTarget)
+            break;
+        if (GetDistanceBetween( oCreature, oTarget ) > 5.0)
+            break;
+        if (!SameTeam( oCreature ))
+            break;
+        if (GetIsInCombat( oCreature ))
+            break;
+        if (GetLocalString( oCreature, "TARGET" ) == sTarget)
+        {
+            bNewTarget = TRUE;
+            break;
+        }
+        ++i;
+        oCreature = GetNearestObjectToLocation( OBJECT_TYPE_CREATURE, GetLocation( oTarget ), i );
+    }
+
+    if (bNewTarget && !IsMaster() && !IsWizard() && !IsCleric() && !IsFighter())
+    {                                           // NOW THIS CODE DOES NOT RUN FOR ANYONE, SINCE WE DONT WANT RANDOM TARGETS
+        sTarget = GetRandomTarget();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );
+        oTarget = GetObjectByTag( sTarget );
+        if (!GetIsObjectValid( oTarget ))
+            return;
+        fToTarget = GetDistanceToObject( oTarget );
+    }
+
+    if (fToTarget > 0.5)        //// MAKE DISTANCE BIGGER???
+    {
+        SpeakString( "I move to " + sTarget, TALKVOLUME_SHOUT );
+        ActionMoveToLocation( GetLocation( oTarget ), TRUE );
+    }
+
+    return;
+}
+
+// Called when the NPC is spawned.
+// ACTIONS GET THROWN OUT, because units are paralyzed at spawn
+void T2_Spawn()
+{
+    string sTarget = GetRandomTarget();
+    if (IsWizardLeft())
+    {
+        sTarget = WpClosestAltarLeft();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );      // SET
+        return;
+    }
+    else if (IsWizardRight())
+    {
+        sTarget = WpClosestAltarRight();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
+        return;
+    }
+    else if (IsFighterRight())
+    {
+      sTarget = WpFurthestAltarRight();
+      SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
+      return;
+    }
+    else if (IsClericRight())
+    {
+        sTarget = WpFurthestAltarRight();
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget);
+        return ;
+    }
+    else if (IsFighterLeft())
+    {
+      sTarget = WpFurthestAltarLeft();
+      SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
+      return;
+     }
+    else if (IsClericLeft())
+    {
+      sTarget = WpFurthestAltarLeft();
+      SetLocalString( OBJECT_SELF, "TARGET", sTarget );       // SET
+      return;
+    }
+
+   else if (IsMaster())
+   {
+        sTarget = "NPC_" + OpponentColor()+ "_1";             // could be that the wizard is also dead at this point
+        SpeakString("I will get that wizard! ->" + sTarget, TALKVOLUME_SHOUT);
+        SetLocalString( OBJECT_SELF, "TARGET", sTarget );
+        return;
+   }
+}
+
+// This function is called when certain events take place, after the standard
+// NWN handling of these events has been performed.
+void T2_UserDefined( int Event )
+{
+    switch (Event)
+    {
+        // The NPC has just been attacked.
+        case EVENT_ATTACKED:
+          //  int allies = CheckFriendlyFireOnTarget( OBJECT_SELF, 5.0)
+          //  if (allies > 0)
+            // als ze niet in gevecht zijn, get tags of allies in range and let them help
+            break;
+
+        // The NPC was damaged.
+        case EVENT_DAMAGED:
+            break;
+
+        // At the end of one round of combat.
+        case EVENT_END_COMBAT_ROUND:
+            T2_Target();
+            break;
+
+        // Every heartbeat (i.e., every six seconds).
+        case EVENT_HEARTBEAT:
+            T2_HeartBeat();
+            break;
+
+        // Whenever the NPC perceives a new creature.
+        case EVENT_PERCEIVE:
+            break;
+
+        // When a spell is cast at the NPC.
+        case EVENT_SPELL_CAST_AT:
+            break;
+
+        // Whenever the NPC's inventory is disturbed.
+        case EVENT_DISTURBED:
+            break;
+
+        // Whenever the NPC dies.
+        case EVENT_DEATH:
+            break;
+
+        // When the NPC has just been spawned.
+        case EVENT_SPAWN:
+            T2_Spawn();
+            break;
+    }
+
+    return;
+}
+
+// Called when the fight starts, just before the initial spawning.
+void T2_Initialize( string sColor )
+{
+    SetTeamName( sColor, "T2-" + GetStringLowerCase( sColor ) );
+}
+
